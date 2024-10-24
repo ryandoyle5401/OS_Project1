@@ -1,4 +1,10 @@
 # CMPSC 472 Project 1
+# Table of Contents
+- [Project Description](#project-description)
+- [Structure of Code](#structure-of-code)
+- [Instructions on How to Use the Program](#instructions-on-how-to-use-the-program)
+- [Verification of Code Functionality](#verification-of-code-functionality)
+- [Discussion of Findings](#discussion-of-findings)
 # Project Description
 This project involves developing a program to read through seven large files using multiple processes and multiple threads. Each process is assigned to read one file, and each thread is assigned to a specific portion of the file to read through concurrently with other threads. The goal is to identify, count, and display the 50 most-used words with each word displaying its frequency. 
 
@@ -10,9 +16,11 @@ In the program where no multi-threading is used, the program starts the timer to
 **Fork Diagram**  
 ![image](/fork_diagram.jpg)  
 **Explanation:** The parent process calls fork() to create a child process, and the return value of the fork() function call is a process ID. When that process ID is equal to zero, this indicates the process executing the code is a child process. The child process then runs the code after the fork() call, and in this project, that code creates a file pointer, reads the file, tokenizes the string, searches for words that match one of the keywords from the keywords[] array, updates the frequency of the word that was found, closes the file, then sends the word count to the parent process through a pipe. Meanwhile, once the parent process creates all seven processes, it then moves on to collect all word frequencies from the child processes. It does this by using a for-loop to get values from all seven child processes. The first step inside the for-loop is to close the write end of the pipe. Then using the read() function, the parent reads data coming being sent through the pipe from the child. The parent uses another for-loop to accumulate all word frequencies from each child. After reading in all the frequencies, the parent closes the read end of the pipe and starts over at the top of the for-loop until it reads from all seven children. After it finishes reading, the parent calls uses a while-loop to wait for all children processes to finish execution.  
+
 **Thread Diagram**
 ![image](/thread_diagram.jpg)
 **Explanation:** Within the for-loop used to create the seven child processes, the child process then goes on to create two threads. Thread creation is completed through the pthread_create() function that gets called twice to create two threads. Within each pthread_create() function is a function that the thread is supposed to run. In this program, both threads run the same function - the read_file() function. This function allows the thread to read a specific portion of the file. For example, the first thread will read the first half of the file while the second thread will read the second half of the file. The reason for this is so the file can be read in parallel. The threads essentially read the file the same way the single process reads the file where each line of the file is read using fgets(), then the string is tokenized using strtok(). Then a while-loop is used to go through each token. A for-loop is used to compare this token to each of the 50 words stored in the keywords[] array. If the token matches one these words, the frequency of that word is updated. The only difference between the processes and the threads is when the frequencies get updated. A mutex is locked before the frequencies get updated to prevent multiple threads from updating the values in the array used to store word frequencies at once. After the value is updated, the mutex is unlocked to allow another thread to go in and update the frequenices with its own values.  
+
 **Pipe Diagram**   
 ![image](/pipe_diagram.jpg)
 **Explanation:** Communication between a child and parent process is enabled through the use of pipes. Each process gets its own set of file descriptors - one for reading from the pipe and one for writing to the pipe. If the child process wants to send data to the parent process, first it must close its own file descriptor for reading. Then using the write() function, it can write its data to the write-end of the pipe situated in the kernel of the operating system. In order for the parent process to read that data, the parent process must first close its own file descriptor for writing. Then using the read() function, it can read the data that the child process has sent. In this program, the data the child processes send are the word frequencies each child has accumulated. Since there are multiple child processes that all need to send their data, the write() function is enclosed in a loop so that all chlid processes can send their data. The same is true for the parent process - the read() function is enclosed in a loop so that it can read all data from all children. The parent process than accumulates all word frequencies from all seven child processes into a single array called frequencies[]. After reading all data from all children, the frequencies[] array should contain the total number of times each word appeared throughout all seven files that were read.
@@ -21,12 +29,20 @@ In the program where no multi-threading is used, the program starts the timer to
 Using this program is easy - all that the user needs to do is just hit the run button. This project was completed in Google Colab, so all files that are read are stored in my Google Drive. To get access to these files, I just had to mount Google Drive. Once the drive is mounted, the program handles everything else simply running. It reads all files, identifies keywords stored in the keywords[] array, counts the frequencies of all keywords, then displays each keyword, its frequency, the total execution time, the CPU time used, and the amount of memory used. 
 
 # Verification of Code Functionality
-**Note:** Since I could not get the multithreaded program to work properly, I made a simpler program that does work. This simpler program does not create any child processes, but it does create two threads to read a single file. To have a fair comparison, I also modified the non-multithreaded program to create only one child process to read one file. This way I can compare the metrics of the program that uses two threads to read one file and the program that uses a single child process to read the same file.
-Word Histogram
-Single thread output
-Multithread output
+**Note:** Since I could not get the multithreaded program to work properly, I made a simpler program that does work. This simpler program does not create any child processes, but it does create two threads to read a single file. To have a fair comparison, I also modified the non-multithreaded program to create only one child process to read one file. This way I can compare the metrics of the program that uses two threads to read one file and the program that uses a single child process to read the same file.  
+
+**Word Histogram**
+![image](/keyword_histogram.jpg)  
+
+**Single thread output**  
+![image](/single-thread-output.jpg)  
+
+**Multithread output**  
+![image](/multi-thread-output.jpg)  
+
 **Difference in Performance:** For the program that uses only seven child processes and no multithreading, the total execution time was 18.646 milliseconds, whereas the multithreaded program took 16.543 milliseconds to complete its executions. The non-multithreaded program spent 76.560 milliseconds in user mode and 22.121 milliseconds in kernel mode. The multithreaded program spent 54.878 milliseconds in user mode and 21.798 milliseconds in kernel mode. Both programs used a similar amount of memory. The non-multithreaded program used about 20.56MB of memory as opposed to the multithreaded program's 20.91MB.  
 
-**Discussion of Verification Results:** Overall I believe these results make sense. A non-multithreaded program should take longer to execute overall since the program does not take advantage of parallel execution. In this case, parallel execution would be multiple threads reading the same file in different places, meaning the entire file can be read much quicker than with a single process.
+**Discussion of Verification Results:** Overall I believe these results make sense. Both programs output the same words appearing the same number of times, meaning both programs read the same file and get the same results, as expected.
 
 # Discussion of Findings
+From this project, I have discovered that the program that does not take advantage of multithreading took longer to run than the program that did take advantage of multithreading. Additionally, the program that did not take advantage of multithreading spent more CPU time in both user and kernel mode. I believe the increased time difference between the non-multithreaded program and the multithreaded program is due to the fact that the non-multithreaded program took more time to execute overall. The multithreaded program took less time to execute overall since it used two threads to read the file in parallel, and since this program took less time overall, this means it also spent less time in the CPU overall, both in user and kernel mode. A non-multithreaded program should take longer to execute overall since the program does not take advantage of parallel execution. In this case, parallel execution would be multiple threads reading the same file in different places, meaning the entire file can be read much quicker than with a single process.
