@@ -1,4 +1,4 @@
-# OS_Project1
+# CMPSC 472 Project 1
 # Project Description
 This project involves developing a program to read through seven large files using multiple processes and multiple threads. Each process is assigned to read one file, and each thread is assigned to a specific portion of the file to read through concurrently with other threads. The goal is to identify, count, and display the 50 most-used words with each word displaying its frequency. 
 
